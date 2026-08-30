@@ -96,7 +96,7 @@ task.spawn(function()
     pcall(function()
         if writefile and getcustomasset and game:HttpGet then
             -- 🛑 ដាក់ Link Raw របស់ GitHub របស់អ្នកនៅត្រង់នេះ 👇
-            local githubRawUrl = "https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/your_image.png"
+            local githubRawUrl = "https://raw.githubusercontent.com/jerryop9999-lgtm/Optimize-/refs/heads/main/6cb3179d9f63187af83a92c38eaa9d2e.webp.jpg"
             
             local fileName = "JerryBg_" .. math.random(1000, 9999) .. ".png"
             writefile(fileName, game:HttpGet(githubRawUrl))
