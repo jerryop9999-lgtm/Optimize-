@@ -1,5 +1,5 @@
--- Jerry Optimize 🔧 v4.7 (Fixed UDim2.fromOffset Compatibility for Mobile Executors)
--- Performance Optimizer & Player Tracker
+-- Jerry Optimize 🔧 v6.2 (Functional Boost FPS & Compact UI)
+-- Custom UI Built with Pure Luau
 
 if not game:IsLoaded() then
     game.Loaded:Wait()
@@ -29,292 +29,467 @@ if not guiParent then
 end
 
 pcall(function()
-    local old = guiParent:FindFirstChild("JerryOptimize")
+    local old = guiParent:FindFirstChild("JerryOptimizeModern")
     if old then old:Destroy() end
 end)
 
 local gui = Instance.new("ScreenGui")
-gui.Name = "JerryOptimize"
+gui.Name = "JerryOptimizeModern"
 gui.ResetOnSpawn = false
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = guiParent
 
--- State
-local optimizeOn = false
-local boostOn = false
+-- States
 local isFlying = false
-local customAssetPath = ""
-local buttonImages = {}
 
--- Original settings
+-- Backup original settings for restore
 local originalShadows = Lighting.GlobalShadows
+local originalTech = Lighting.Technology
 local terrain = Workspace:FindFirstChildOfClass("Terrain")
 local originalDecoration = false
 if terrain then pcall(function() originalDecoration = terrain.Decoration end) end
 
-local effects = {}
-for _,v in ipairs(Lighting:GetChildren()) do
-    if v:IsA("PostEffect") then effects[v] = v.Enabled end
-end
-
--- Open button (Icon 🔧)
-local open = Instance.new("TextButton")
-open.Size = UDim2.new(0, 50, 0, 50)
-open.Position = UDim2.new(0, 15, 0.5, -25)
-open.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-open.Text = "🔧"
-open.TextSize = 25
-open.Font = Enum.Font.GothamBold
-open.TextColor3 = Color3.new(1, 1, 1)
-open.AutoButtonColor = true
-open.Parent = gui
-local openCorner = Instance.new("UICorner")
-openCorner.CornerRadius = UDim.new(1, 0)
-openCorner.Parent = open
-
--- Main menu
-local menu = Instance.new("Frame")
-menu.Size = UDim2.new(0, 360, 0, 360) 
-menu.Position = UDim2.new(0.5, -180, 0.5, -180)
-menu.BackgroundColor3 = Color3.fromRGB(15, 20, 25)
-menu.BorderSizePixel = 0
-menu.Visible = false 
-menu.ClipsDescendants = true
-menu.Parent = gui
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 16)
-corner.Parent = menu
-
 --=========================================
--- ដាក់ Background Image ពី GitHub Raw Link របស់អ្នក
+-- REAL FPS BOOST FUNCTION
 --=========================================
-local bgImage = Instance.new("ImageLabel")
-bgImage.Size = UDim2.new(1, 0, 1, 0)
-bgImage.BackgroundTransparency = 1
-bgImage.ImageTransparency = 0.4
-bgImage.ScaleType = Enum.ScaleType.Slice
-bgImage.Parent = menu
-
-task.spawn(function()
-    pcall(function()
-        if writefile and getcustomasset and game:HttpGet then
-            local githubRawUrl = "https://raw.githubusercontent.com/jerryop9999-lgtm/Optimize-/refs/heads/main/6cb3179d9f63187af83a92c38eaa9d2e.webp.jpg"
-            
-            local success, response = pcall(function()
-                return game:HttpGet(githubRawUrl)
+local function applyBoost(state)
+    if state then
+        -- Turn off shadows and use lightweight lighting
+        Lighting.GlobalShadows = false
+        pcall(function() Lighting.Technology = Enum.LightingTechnology.Compatibility end)
+        
+        if terrain then
+            pcall(function()
+                terrain.WaterWaveSize = 0
+                terrain.WaterTransparency = 1
+                terrain.Decoration = false
             end)
-            
-            if success and response and not response:find("<!DOCTYPE html>") then
-                local fileName = "JerryBg_" .. math.random(1000, 9999) .. ".png"
-                writefile(fileName, response)
-                customAssetPath = getcustomasset(fileName)
-                
-                bgImage.Image = customAssetPath
-                
-                for _, btn in ipairs(buttonImages) do
-                    if btn and btn.Parent then
-                        btn.Image = customAssetPath
-                    end
-                end
+        end
+        
+        -- Disable heavy particles, trails, beams to boost FPS
+        for _, v in ipairs(Workspace:GetDescendants()) do
+            if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles") then
+                pcall(function() v.Enabled = false end)
             end
         end
-    end)
-end)
-
--- Header
-local header = Instance.new("TextLabel")
-header.Size = UDim2.new(1, -20, 0, 48)
-header.Position = UDim2.new(0, 10, 0, 5)
-header.BackgroundTransparency = 1
-header.Text = "Jerry Optimize 🔧 v4.7"
-header.TextColor3 = Color3.fromRGB(255, 215, 0)
-header.TextSize = 22
-header.Font = Enum.Font.GothamBold
-header.ZIndex = 2
-header.Parent = menu
-
--- Status
-local status = Instance.new("TextLabel")
-status.Size = UDim2.new(1, -30, 0, 25)
-status.Position = UDim2.new(0, 15, 0, 52)
-status.BackgroundTransparency = 1
-status.Text = "Status: Ready"
-status.TextColor3 = Color3.fromRGB(150, 255, 150)
-status.TextSize = 14
-status.Font = Enum.Font.Gotham
-status.TextXAlignment = Enum.TextXAlignment.Left
-status.ZIndex = 2
-status.Parent = menu
-
--- FPS
-local fpsLabel = Instance.new("TextLabel")
-fpsLabel.Size = UDim2.new(1, -30, 0, 25)
-fpsLabel.Position = UDim2.new(0, 15, 0, 76)
-fpsLabel.BackgroundTransparency = 1
-fpsLabel.Text = "FPS: --"
-fpsLabel.TextColor3 = Color3.new(1, 1, 1)
-fpsLabel.TextSize = 14
-fpsLabel.Font = Enum.Font.GothamSemibold
-fpsLabel.TextXAlignment = Enum.TextXAlignment.Left
-fpsLabel.ZIndex = 2
-fpsLabel.Parent = menu
-
--- មុខងារបង្កើតប៊ូតុង
-local function makeButton(text, y, parent)
-    local b = Instance.new("ImageButton")
-    b.Size = UDim2.new(1, -40, 0, 50)
-    b.Position = UDim2.new(0, 20, 0, y)
-    b.BackgroundColor3 = Color3.fromRGB(45, 50, 60)
-    b.BackgroundTransparency = 0.3
-    b.BorderSizePixel = 0
-    b.Image = customAssetPath
-    b.ImageTransparency = 0.3
-    b.ScaleType = Enum.ScaleType.Slice
-    b.AutoButtonColor = true
-    b.ZIndex = 2
-    b.Parent = parent or menu
-    
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, 10)
-    c.Parent = b
-    
-    local txt = Instance.new("TextLabel")
-    txt.Size = UDim2.new(1, 0, 1, 0)
-    txt.BackgroundTransparency = 1
-    txt.Text = text
-    txt.TextColor3 = Color3.new(1, 1, 1)
-    txt.TextSize = 16
-    txt.Font = Enum.Font.GothamSemibold
-    txt.ZIndex = 3
-    txt.Parent = b
-    
-    table.insert(buttonImages, b)
-    return b
+    else
+        -- Restore original settings
+        Lighting.GlobalShadows = originalShadows
+        pcall(function() Lighting.Technology = originalTech end)
+        
+        if terrain then
+            pcall(function()
+                terrain.WaterWaveSize = 0.5
+                terrain.WaterTransparency = 0.6
+                terrain.Decoration = originalDecoration
+            end)
+        end
+        
+        for _, v in ipairs(Workspace:GetDescendants()) do
+            if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles") then
+                pcall(function() v.Enabled = true end)
+            end
+        end
+    end
 end
 
-local optimizeButton = makeButton("Normal Optimize  [OFF]", 105)
-local boostButton = makeButton("MAX FPS BOOST  [OFF]", 165)
-boostButton:FindFirstChildOfClass("TextLabel").TextColor3 = Color3.fromRGB(255, 100, 100)
-local tpMenuButton = makeButton("🎯 Open Player List", 225)
-local stopFlyButton = makeButton("🛑 Stop Flying", 285)
-stopFlyButton.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
-stopFlyButton.Visible = false
+--=========================================
+-- FLOATING OPEN BUTTON (Wrench Icon)
+--=========================================
+local openBtn = Instance.new("TextButton")
+openBtn.Size = UDim2.new(0, 46, 0, 46)
+openBtn.Position = UDim2.new(0, 15, 0.4, -23)
+openBtn.BackgroundColor3 = Color3.fromRGB(20, 18, 30)
+openBtn.Text = "🔧"
+openBtn.TextSize = 22
+openBtn.Font = Enum.Font.GothamBold
+openBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+openBtn.AutoButtonColor = true
+openBtn.Parent = gui
+
+Instance.new("UICorner", openBtn).CornerRadius = UDim.new(1, 0)
+local openStroke = Instance.new("UIStroke")
+openStroke.Color = Color3.fromRGB(147, 51, 234)
+openStroke.Thickness = 2
+openStroke.Parent = openBtn
 
 --=========================================
--- Player List Menu (ទំហំ 300x300)
+-- MAIN WINDOW (Compact Size: 480 x 330)
 --=========================================
-local tpFrame = Instance.new("Frame")
-tpFrame.Size = UDim2.new(0, 300, 0, 300)
-tpFrame.Position = UDim2.new(1, 10, 0, 0)
-tpFrame.BackgroundColor3 = Color3.fromRGB(15, 20, 25)
-tpFrame.BackgroundTransparency = 0.1
-tpFrame.BorderSizePixel = 0
-tpFrame.Visible = false
-tpFrame.ClipsDescendants = true
-tpFrame.ZIndex = 3
-tpFrame.Parent = menu
-local tpCorner = Instance.new("UICorner")
-tpCorner.CornerRadius = UDim.new(0, 16)
-tpCorner.Parent = tpFrame
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 480, 0, 330)
+mainFrame.Position = UDim2.new(0.5, -240, 0.5, -165)
+mainFrame.BackgroundColor3 = Color3.fromRGB(15, 13, 22)
+mainFrame.BorderSizePixel = 0
+mainFrame.Visible = false
+mainFrame.ClipsDescendants = true
+mainFrame.Parent = gui
 
-local tpBgImage = Instance.new("ImageLabel")
-tpBgImage.Size = UDim2.new(1, 0, 1, 0)
-tpBgImage.BackgroundTransparency = 1
-tpBgImage.ImageTransparency = 0.4
-tpBgImage.ZIndex = 3
-tpBgImage.Parent = tpFrame
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Color = Color3.fromRGB(110, 40, 190)
+mainStroke.Thickness = 1.5
+mainStroke.Parent = mainFrame
 
-task.spawn(function()
-    while customAssetPath == "" do task.wait(0.1) end
-    tpBgImage.Image = customAssetPath
+--=========================================
+-- TOP BAR (Header)
+--=========================================
+local topBar = Instance.new("Frame")
+topBar.Size = UDim2.new(1, 0, 0, 45)
+topBar.BackgroundTransparency = 1
+topBar.Parent = mainFrame
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(0, 250, 0, 20)
+titleLabel.Position = UDim2.new(0, 15, 0, 6)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "Jerry Optimize 🔧"
+titleLabel.TextColor3 = Color3.fromRGB(220, 180, 255)
+titleLabel.TextSize = 17
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.Parent = topBar
+
+local subTitle = Instance.new("TextLabel")
+subTitle.Size = UDim2.new(0, 250, 0, 15)
+subTitle.Position = UDim2.new(0, 15, 0, 24)
+subTitle.BackgroundTransparency = 1
+subTitle.Text = "Delta Executor Menu (Compact)"
+subTitle.TextColor3 = Color3.fromRGB(140, 130, 170)
+subTitle.TextSize = 11
+subTitle.Font = Enum.Font.Gotham
+subTitle.TextXAlignment = Enum.TextXAlignment.Left
+subTitle.Parent = topBar
+
+-- Close Button (X)
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 28, 0, 28)
+closeBtn.Position = UDim2.new(1, -36, 0, 8)
+closeBtn.BackgroundColor3 = Color3.fromRGB(30, 25, 45)
+closeBtn.Text = "✕"
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.TextSize = 12
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.Parent = topBar
+Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
+
+closeBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = false
 end)
 
-local tpHeader = Instance.new("TextLabel")
-tpHeader.Size = UDim2.new(1, -20, 0, 40)
-tpHeader.Position = UDim2.new(0, 10, 0, 5)
-tpHeader.BackgroundTransparency = 1
-tpHeader.Text = "👥 Select a Player"
-tpHeader.TextColor3 = Color3.fromRGB(100, 200, 255)
-tpHeader.TextSize = 17
-tpHeader.Font = Enum.Font.GothamBold
-tpHeader.ZIndex = 4
-tpHeader.Parent = tpFrame
+-- Minimize Button (-)
+local minBtn = Instance.new("TextButton")
+minBtn.Size = UDim2.new(0, 28, 0, 28)
+minBtn.Position = UDim2.new(1, -68, 0, 8)
+minBtn.BackgroundColor3 = Color3.fromRGB(30, 25, 45)
+minBtn.Text = "-"
+minBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+minBtn.TextSize = 14
+minBtn.Font = Enum.Font.GothamBold
+minBtn.Parent = topBar
+Instance.new("UICorner", minBtn).CornerRadius = UDim.new(0, 6)
 
-local refreshBtn = Instance.new("ImageButton")
-refreshBtn.Size = UDim2.new(0, 70, 0, 26)
-refreshBtn.Position = UDim2.new(1, -80, 0, 12)
-refreshBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 60)
-refreshBtn.BackgroundTransparency = 0.3
-refreshBtn.BorderSizePixel = 0
-refreshBtn.Image = customAssetPath
-refreshBtn.ImageTransparency = 0.3
-refreshBtn.ZIndex = 4
-refreshBtn.Parent = tpFrame
-local refCorner = Instance.new("UICorner")
-refCorner.CornerRadius = UDim.new(0, 6)
-refCorner.Parent = refreshBtn
-
-local refTxt = Instance.new("TextLabel")
-refTxt.Size = UDim2.new(1, 0, 1, 0)
-refTxt.BackgroundTransparency = 1
-refTxt.Text = "Refresh"
-refTxt.TextColor3 = Color3.new(1,1,1)
-refTxt.Font = Enum.Font.GothamBold
-refTxt.TextSize = 11
-refTxt.ZIndex = 5
-refTxt.Parent = refreshBtn
-table.insert(buttonImages, refreshBtn)
-
-local scrollList = Instance.new("ScrollingFrame")
-scrollList.Size = UDim2.new(1, -16, 1, -55)
-scrollList.Position = UDim2.new(0, 8, 0, 48)
-scrollList.BackgroundTransparency = 1
-scrollList.ScrollBarThickness = 5
-scrollList.ZIndex = 4
-scrollList.Parent = tpFrame
-local listLayout = Instance.new("UIListLayout")
-listLayout.Padding = UDim.new(0, 4)
-listLayout.Parent = scrollList
-
-tpMenuButton.MouseButton1Click:Connect(function()
-    tpFrame.Visible = not tpFrame.Visible
+minBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = false
 end)
 
 --=========================================
--- Fly Bypass Logic
+-- SIDEBAR (Left Menu)
 --=========================================
+local sidebar = Instance.new("Frame")
+sidebar.Size = UDim2.new(0, 130, 1, -85)
+sidebar.Position = UDim2.new(0, 12, 0, 48)
+sidebar.BackgroundTransparency = 1
+sidebar.Parent = mainFrame
+
+local tabLayout = Instance.new("UIListLayout")
+tabLayout.Padding = UDim.new(0, 4)
+tabLayout.Parent = sidebar
+
+--=========================================
+-- CONTENT CONTAINER (Right Panel)
+--=========================================
+local contentContainer = Instance.new("Frame")
+contentContainer.Size = UDim2.new(1, -155, 1, -85)
+contentContainer.Position = UDim2.new(0, 150, 0, 48)
+contentContainer.BackgroundTransparency = 1
+contentContainer.Parent = mainFrame
+
+local pages = {}
+
+local function createPage(name)
+    local p = Instance.new("ScrollingFrame")
+    p.Size = UDim2.new(1, 0, 1, 0)
+    p.BackgroundTransparency = 1
+    p.BorderSizePixel = 0
+    p.ScrollBarThickness = 3
+    p.Visible = false
+    p.Parent = contentContainer
+    
+    local layout = Instance.new("UIListLayout")
+    layout.Padding = UDim.new(0, 8)
+    layout.Parent = p
+    
+    pages[name] = p
+    return p
+end
+
+local mainPage = createPage("Main")
+mainPage.Visible = true
+local playerPage = createPage("Player")
+local visualsPage = createPage("Visuals")
+local worldPage = createPage("World")
+local settingsPage = createPage("Settings")
+local creditsPage = createPage("Credits")
+
+--=========================================
+-- BUILD TABS BUTTONS IN SIDEBAR
+--=========================================
+local tabButtons = {}
+
+local function createTabButton(name, iconText)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 32)
+    
+    if name == "Main" then
+        btn.BackgroundColor3 = Color3.fromRGB(126, 34, 206)
+        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    else
+        btn.BackgroundColor3 = Color3.fromRGB(22, 18, 32)
+        btn.TextColor3 = Color3.fromRGB(170, 160, 200)
+    end
+    
+    btn.Text = "   " .. iconText .. "  " .. name
+    btn.TextSize = 12
+    btn.Font = Enum.Font.GothamSemibold
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.Parent = sidebar
+    
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    
+    btn.MouseButton1Click:Connect(function()
+        for tabName, page in pairs(pages) do
+            page.Visible = (tabName == name)
+        end
+        for _, b in pairs(tabButtons) do
+            b.BackgroundColor3 = Color3.fromRGB(22, 18, 32)
+            b.TextColor3 = Color3.fromRGB(170, 160, 200)
+        end
+        btn.BackgroundColor3 = Color3.fromRGB(126, 34, 206)
+        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    end)
+    
+    table.insert(tabButtons, btn)
+end
+
+createTabButton("Main", "🏠")
+createTabButton("Player", "👤")
+createTabButton("Visuals", "👁️")
+createTabButton("World", "🌍")
+createTabButton("Settings", "⚙️")
+createTabButton("Credits", "ℹ️")
+
+--=========================================
+-- POPULATE MAIN PAGE CONTENT
+--=========================================
+local function createToggleCard(title, desc, initialOn, callback)
+    local card = Instance.new("Frame")
+    card.Size = UDim2.new(1, -4, 0, 56)
+    card.BackgroundColor3 = Color3.fromRGB(22, 18, 32)
+    card.Parent = mainPage
+    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8)
+    
+    local titleL = Instance.new("TextLabel")
+    titleL.Size = UDim2.new(1, -65, 0, 18)
+    titleL.Position = UDim2.new(0, 12, 0, 9)
+    titleL.BackgroundTransparency = 1
+    titleL.Text = title
+    titleL.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleL.TextSize = 13
+    titleL.Font = Enum.Font.GothamBold
+    titleL.TextXAlignment = Enum.TextXAlignment.Left
+    titleL.Parent = card
+    
+    local descL = Instance.new("TextLabel")
+    descL.Size = UDim2.new(1, -65, 0, 20)
+    descL.Position = UDim2.new(0, 12, 0, 27)
+    descL.BackgroundTransparency = 1
+    descL.Text = desc
+    descL.TextColor3 = Color3.fromRGB(140, 130, 170)
+    descL.TextSize = 10
+    descL.Font = Enum.Font.Gotham
+    descL.TextXAlignment = Enum.TextXAlignment.Left
+    descL.Parent = card
+    
+    local toggleBtn = Instance.new("TextButton")
+    toggleBtn.Size = UDim2.new(0, 42, 0, 22)
+    toggleBtn.Position = UDim2.new(1, -52, 0.5, -11)
+    
+    if initialOn then
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(126, 34, 206)
+    else
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(45, 40, 60)
+    end
+    
+    toggleBtn.Text = ""
+    toggleBtn.Parent = card
+    Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(1, 0)
+    
+    local circle = Instance.new("Frame")
+    circle.Size = UDim2.new(0, 16, 0, 16)
+    
+    if initialOn then
+        circle.Position = UDim2.new(1, -19, 0.5, -8)
+    else
+        circle.Position = UDim2.new(0, 3, 0.5, -8)
+    end
+    
+    circle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    circle.Parent = toggleBtn
+    Instance.new("UICorner", circle).CornerRadius = UDim.new(1, 0)
+    
+    local isOn = initialOn
+    toggleBtn.MouseButton1Click:Connect(function()
+        isOn = not isOn
+        local goalPos, goalColor
+        if isOn then
+            goalPos = UDim2.new(1, -19, 0.5, -8)
+            goalColor = Color3.fromRGB(126, 34, 206)
+        else
+            goalPos = UDim2.new(0, 3, 0.5, -8)
+            goalColor = Color3.fromRGB(45, 40, 60)
+        end
+        
+        TweenService:Create(circle, TweenInfo.new(0.2), {Position = goalPos}):Play()
+        TweenService:Create(toggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = goalColor}):Play()
+        
+        callback(isOn)
+    end)
+    
+    return card
+end
+
+-- Connect actual functions
+createToggleCard("Optimize", "Optimize rendering and system performance.", false, function(state)
+    applyBoost(state)
+end)
+
+createToggleCard("Boost FPS", "Boost FPS and reduce lag in game.", false, function(state)
+    applyBoost(state)
+end)
+
+local infoTitle = Instance.new("TextLabel")
+infoTitle.Size = UDim2.new(1, 0, 0, 20)
+infoTitle.BackgroundTransparency = 1
+infoTitle.Text = "💻 System Info"
+infoTitle.TextColor3 = Color3.fromRGB(200, 160, 255)
+infoTitle.TextSize = 12
+infoTitle.Font = Enum.Font.GothamBold
+infoTitle.TextXAlignment = Enum.TextXAlignment.Left
+infoTitle.Parent = mainPage
+
+local statsRow = Instance.new("Frame")
+statsRow.Size = UDim2.new(1, -4, 0, 50)
+statsRow.BackgroundTransparency = 1
+statsRow.Parent = mainPage
+
+local function createStatBox(name, valText, xPos)
+    local box = Instance.new("Frame")
+    box.Size = UDim2.new(0.32, 0, 1, 0)
+    box.Position = UDim2.new(xPos, 0, 0, 0)
+    box.BackgroundColor3 = Color3.fromRGB(22, 18, 32)
+    box.Parent = statsRow
+    Instance.new("UICorner", box).CornerRadius = UDim.new(0, 8)
+    
+    local l1 = Instance.new("TextLabel")
+    l1.Size = UDim2.new(1, 0, 0, 15)
+    l1.Position = UDim2.new(0, 0, 0, 6)
+    l1.BackgroundTransparency = 1
+    l1.Text = name
+    l1.TextColor3 = Color3.fromRGB(140, 130, 170)
+    l1.TextSize = 10
+    l1.Font = Enum.Font.GothamBold
+    l1.Parent = box
+    
+    local l2 = Instance.new("TextLabel")
+    l2.Name = "Value"
+    l2.Size = UDim2.new(1, 0, 0, 20)
+    l2.Position = UDim2.new(0, 0, 0, 22)
+    l2.BackgroundTransparency = 1
+    l2.Text = valText
+    l2.TextColor3 = Color3.fromRGB(74, 222, 128)
+    l2.TextSize = 13
+    l2.Font = Enum.Font.GothamBold
+    l2.Parent = box
+    
+    return l2
+end
+
+local fpsVal = createStatBox("FPS", "60", 0)
+local pingVal = createStatBox("Ping", "50ms", 0.34)
+local playersVal = createStatBox("Players", "12", 0.68)
+
+--=========================================
+-- PLAYER PAGE
+--=========================================
+local playerListHeader = Instance.new("TextLabel")
+playerListHeader.Size = UDim2.new(1, 0, 0, 20)
+playerListHeader.BackgroundTransparency = 1
+playerListHeader.Text = "👥 Select a Player to Teleport / Fly"
+playerListHeader.TextColor3 = Color3.fromRGB(200, 160, 255)
+playerListHeader.TextSize = 12
+playerListHeader.Font = Enum.Font.GothamBold
+playerListHeader.TextXAlignment = Enum.TextXAlignment.Left
+playerListHeader.Parent = playerPage
+
+local scrollPlayers = Instance.new("ScrollingFrame")
+scrollPlayers.Size = UDim2.new(1, -4, 0, 130)
+scrollPlayers.BackgroundTransparency = 1
+scrollPlayers.ScrollBarThickness = 3
+scrollPlayers.Parent = playerPage
+
+local pLayout = Instance.new("UIListLayout")
+pLayout.Padding = UDim.new(0, 4)
+pLayout.Parent = scrollPlayers
+
+local stopFlyBtn = Instance.new("TextButton")
+stopFlyBtn.Size = UDim2.new(1, -4, 0, 30)
+stopFlyBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+stopFlyBtn.Text = "🛑 Stop Flying"
+stopFlyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+stopFlyBtn.Font = Enum.Font.GothamBold
+stopFlyBtn.TextSize = 12
+stopFlyBtn.Visible = false
+stopFlyBtn.Parent = playerPage
+Instance.new("UICorner", stopFlyBtn).CornerRadius = UDim.new(0, 6)
+
 local flyTween, noclipLoop
 
 local function stopFlying()
     if flyTween then flyTween:Cancel() flyTween = nil end
     if noclipLoop then noclipLoop:Disconnect() noclipLoop = nil end
-    
     if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
         local hrp = player.Character.HumanoidRootPart
         local bv = hrp:FindFirstChild("JerryFlyBV")
         if bv then bv:Destroy() end
-        hrp.Anchored = false 
+        hrp.Anchored = false
     end
     isFlying = false
-    stopFlyButton.Visible = false
-    status.Text = "Status: Flight Stopped."
+    stopFlyBtn.Visible = false
 end
+
+stopFlyBtn.MouseButton1Click:Connect(stopFlying)
 
 local function flyToTarget(targetName)
     local targetPlr = Players:FindFirstChild(targetName)
-    if not targetPlr or not targetPlr.Character or not targetPlr.Character:FindFirstChild("HumanoidRootPart") then 
-        status.Text = "Status: Player not found or dead!"
-        return 
-    end
+    if not targetPlr or not targetPlr.Character or not targetPlr.Character:FindFirstChild("HumanoidRootPart") then return end
     if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
 
     local hrp = player.Character.HumanoidRootPart
     local targetHrp = targetPlr.Character.HumanoidRootPart
 
     local distance = (hrp.Position - targetHrp.Position).Magnitude
-    local speed = 150 
-    local flyTime = distance / speed
-    if flyTime < 0.5 then flyTime = 0.5 end 
+    local flyTime = math.clamp(distance / 150, 0.5, 5)
 
     local bv = hrp:FindFirstChild("JerryFlyBV")
     if not bv then
@@ -326,204 +501,146 @@ local function flyToTarget(targetName)
     end
     hrp.Anchored = false
 
-    local tweenInfo = TweenInfo.new(flyTime, Enum.EasingStyle.Linear)
-    local targetGoal = targetHrp.CFrame * CFrame.new(0, 0, 3) 
-    flyTween = TweenService:Create(hrp, tweenInfo, {CFrame = targetGoal})
-
+    flyTween = TweenService:Create(hrp, TweenInfo.new(flyTime, Enum.EasingStyle.Linear), {CFrame = targetHrp.CFrame * CFrame.new(0,0,3)})
     isFlying = true
-    stopFlyButton.Visible = true
-    
+    stopFlyBtn.Visible = true
+
     noclipLoop = RunService.Stepped:Connect(function()
         if player.Character then
             for _, v in pairs(player.Character:GetDescendants()) do
-                if v:IsA("BasePart") and v.CanCollide then
-                    v.CanCollide = false
-                end
+                if v:IsA("BasePart") and v.CanCollide then v.CanCollide = false end
             end
         end
     end)
 
-    status.Text = "Status: Flying to " .. targetName .. "..."
     flyTween:Play()
-
-    flyTween.Completed:Connect(function(playbackState)
-        if playbackState == Enum.PlaybackState.Completed then
-            stopFlying()
-            status.Text = "Status: Arrived at " .. targetName
-        end
-    end)
+    flyTween.Completed:Connect(function() stopFlying() end)
 end
 
-stopFlyButton.MouseButton1Click:Connect(stopFlying)
-
-local function loadPlayers()
-    for _, child in pairs(scrollList:GetChildren()) do
-        if child:IsA("ImageButton") then child:Destroy() end
+local function loadPlayerList()
+    for _, child in pairs(scrollPlayers:GetChildren()) do
+        if child:IsA("TextButton") then child:Destroy() end
     end
-    
     local count = 0
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= player then
             count += 1
-            local btn = Instance.new("ImageButton")
-            btn.Size = UDim2.new(1, -8, 0, 36)
-            btn.BackgroundColor3 = Color3.fromRGB(35, 40, 50)
-            btn.BackgroundTransparency = 0.3
-            btn.BorderSizePixel = 0
-            btn.Image = customAssetPath
-            btn.ImageTransparency = 0.3
-            btn.ZIndex = 5
-            btn.Parent = scrollList
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, -6, 0, 32)
+            btn.BackgroundColor3 = Color3.fromRGB(22, 18, 32)
+            btn.Text = "        " .. p.Name
+            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            btn.Font = Enum.Font.GothamSemibold
+            btn.TextSize = 11
+            btn.TextXAlignment = Enum.TextXAlignment.Left
+            btn.Parent = scrollPlayers
+            Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
             
-            local btnCorner = Instance.new("UICorner")
-            btnCorner.CornerRadius = UDim.new(0, 8)
-            btnCorner.Parent = btn
-
-            local btnTxt = Instance.new("TextLabel")
-            btnTxt.Size = UDim2.new(1, 0, 1, 0)
-            btnTxt.BackgroundTransparency = 1
-            btnTxt.Text = "            " .. p.Name .. " (@" .. p.DisplayName .. ")"
-            btnTxt.TextColor3 = Color3.new(1,1,1)
-            btnTxt.Font = Enum.Font.GothamSemibold
-            btnTxt.TextSize = 11
-            btnTxt.TextXAlignment = Enum.TextXAlignment.Left
-            btnTxt.ZIndex = 6
-            btnTxt.Parent = btn
-
             local avatar = Instance.new("ImageLabel")
-            avatar.Size = UDim2.new(0, 28, 0, 28)
-            avatar.Position = UDim2.new(0, 4, 0.5, -14)
-            avatar.BackgroundColor3 = Color3.fromRGB(25, 30, 40)
-            avatar.ZIndex = 6
+            avatar.Size = UDim2.new(0, 22, 0, 22)
+            avatar.Position = UDim2.new(0, 5, 0.5, -11)
+            avatar.BackgroundColor3 = Color3.fromRGB(15, 13, 22)
             avatar.Parent = btn
-            
-            local avatarCorner = Instance.new("UICorner")
-            avatarCorner.CornerRadius = UDim.new(1, 0)
-            avatarCorner.Parent = avatar
+            Instance.new("UICorner", avatar).CornerRadius = UDim.new(1, 0)
             
             task.spawn(function()
                 local success, img = pcall(function()
                     return Players:GetUserThumbnailAsync(p.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
                 end)
-                if success and img then
-                    avatar.Image = img
-                end
+                if success and img then avatar.Image = img end
             end)
 
-            table.insert(buttonImages, btn)
-
             btn.MouseButton1Click:Connect(function()
-                if not isFlying then
-                    flyToTarget(p.Name)
-                end
+                if not isFlying then flyToTarget(p.Name) end
             end)
         end
     end
-    scrollList.CanvasSize = UDim2.new(0, 0, 0, count * 40)
+    scrollPlayers.CanvasSize = UDim2.new(0, 0, 0, count * 36)
 end
 
-refreshBtn.MouseButton1Click:Connect(loadPlayers)
-loadPlayers()
+loadPlayerList()
+Players.PlayerAdded:Connect(loadPlayerList)
+Players.PlayerRemoving:Connect(loadPlayerList)
 
--- Optimize Logic
-local function applyOptimize()
-    pcall(function() Lighting.GlobalShadows = false end)
-    pcall(function() if terrain then terrain.Decoration = false end end)
-    for effect, _ in pairs(effects) do
-        pcall(function() if effect.Parent then effect.Enabled = false end end)
-    end
+local function setPlaceholder(page, text)
+    local l = Instance.new("TextLabel")
+    l.Size = UDim2.new(1, 0, 0, 35)
+    l.BackgroundTransparency = 1
+    l.Text = text
+    l.TextColor3 = Color3.fromRGB(140, 130, 170)
+    l.TextSize = 12
+    l.Font = Enum.Font.Gotham
+    l.Parent = page
 end
-local function restoreOptimize()
-    pcall(function() Lighting.GlobalShadows = originalShadows end)
-    pcall(function() if terrain then terrain.Decoration = originalDecoration end end)
-    for effect, enabled in pairs(effects) do
-        pcall(function() if effect.Parent then effect.Enabled = enabled end end)
-    end
-end
+setPlaceholder(visualsPage, "👁️ Visuals Features coming soon...")
+setPlaceholder(worldPage, "🌍 World Features coming soon...")
+setPlaceholder(settingsPage, "⚙️ Custom Settings coming soon...")
+setPlaceholder(creditsPage, "ℹ️ Jerry Optimize • Built for Delta Executor")
 
-optimizeButton.MouseButton1Click:Connect(function()
-    optimizeOn = not optimizeOn
-    local txtLabel = optimizeButton:FindFirstChildOfClass("TextLabel")
-    if optimizeOn then
-        applyOptimize()
-        txtLabel.Text = "Normal Optimize  [ON]"
-        optimizeButton.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
-        status.Text = "Status: Optimized"
-    else
-        restoreOptimize()
-        txtLabel.Text = "Normal Optimize  [OFF]"
-        optimizeButton.BackgroundColor3 = Color3.fromRGB(45, 50, 60)
-        status.Text = "Status: Ready"
-    end
-end)
+--=========================================
+-- FOOTER
+--=========================================
+local footer = Instance.new("TextLabel")
+footer.Size = UDim2.new(1, 0, 0, 18)
+footer.Position = UDim2.new(0, 0, 1, -20)
+footer.BackgroundTransparency = 1
+footer.Text = "Jerry Optimize 🔧 • Compact Edition | Made with ❤️ by Jerry"
+footer.TextColor3 = Color3.fromRGB(110, 100, 140)
+footer.TextSize = 10
+footer.Font = Enum.Font.Gotham
+footer.Parent = mainFrame
 
-boostButton.MouseButton1Click:Connect(function()
-    local txtLabel = boostButton:FindFirstChildOfClass("TextLabel")
-    if not boostOn then
-        boostOn = true
-        txtLabel.Text = "MAX FPS BOOST  [ON]"
-        boostButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-        status.Text = "Status: Applying MAX Boost..."
-        task.wait(0.1)
-        pcall(function()
-            settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
-            Lighting.GlobalShadows = false Lighting.FogEnd = 9e9
-            Lighting.Brightness = 1 Lighting.EnvironmentDiffuseScale = 0
-            Lighting.EnvironmentSpecularScale = 0
-        end)
-        task.spawn(function()
-            local c = 0
-            for _, obj in pairs(Workspace:GetDescendants()) do
-                c += 1 if c % 1000 == 0 then task.wait() end
-                if obj:IsA("BasePart") then obj.Material = Enum.Material.SmoothPlastic obj.Reflectance = 0 obj.CastShadow = false
-                elseif obj:IsA("Decal") or obj:IsA("Texture") or obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Fire") or obj:IsA("Smoke") then
-                    pcall(function() obj.Transparency = 1 end) pcall(function() obj.Enabled = false end)
-                end
-            end
-            status.Text = "Status: MAX FPS BOOST ACTIVE!"
-        end)
-    else
-        status.Text = "Status: Rejoin to disable MAX Boost!"
-        task.wait(2) status.Text = "Status: MAX FPS BOOST ACTIVE!"
-    end
-end)
-
--- FPS Counter
+--=========================================
+-- LIVE STATS
+--=========================================
 local frames, lastTime = 0, os.clock()
 RunService.RenderStepped:Connect(function()
-    frames += 1 local now = os.clock()
+    frames += 1 
+    local now = os.clock()
     if now - lastTime >= 1 then
-        fpsLabel.Text = "FPS: " .. frames
-        frames = 0 lastTime = now
+        fpsVal.Text = tostring(frames)
+        pingVal.Text = math.floor(player:GetNetworkPing() * 1000) .. "ms"
+        playersVal.Text = tostring(#Players:GetPlayers())
+        frames = 0 
+        lastTime = now
     end
 end)
 
--- Dragging Logic
+--=========================================
+-- DRAGGING LOGIC
+--=========================================
 local function makeDraggable(guiItem, dragHandle)
     local drag, start, pos, dragged
     dragHandle.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            drag, dragged = true, false start, pos = input.Position, guiItem.Position
+            drag, dragged = true, false 
+            start, pos = input.Position, guiItem.Position
         end
     end)
     UIS.InputChanged:Connect(function(input)
         if drag and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - start
-            if delta.Magnitude > 5 then dragged = true guiItem.Position = UDim2.new(pos.X.Scale, pos.X.Offset + delta.X, pos.Y.Scale, pos.Y.Offset + delta.Y) end
+            if delta.Magnitude > 5 then 
+                dragged = true 
+                guiItem.Position = UDim2.new(pos.X.Scale, pos.X.Offset + delta.X, pos.Y.Scale, pos.Y.Offset + delta.Y) 
+            end
         end
     end)
     dragHandle.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then drag = false end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then 
+            drag = false 
+        end
     end)
     return function() return dragged end
 end
 
-local isBtnDragged = makeDraggable(open, open)
-open.MouseButton1Click:Connect(function() if not isBtnDragged() then menu.Visible = not menu.Visible end end)
-makeDraggable(menu, header)
-
-UIS.InputBegan:Connect(function(input, p)
-    if not p and input.KeyCode == Enum.KeyCode.K then menu.Visible = not menu.Visible end
+local isDragged = makeDraggable(openBtn, openBtn)
+openBtn.MouseButton1Click:Connect(function() 
+    if not isDragged() then 
+        mainFrame.Visible = not mainFrame.Visible 
+    end 
 end)
 
-print("Jerry Optimize 🔧 v4.7 Loaded Successfully!")
+makeDraggable(mainFrame, topBar)
+
+print("Jerry Optimize 🔧 v6.2 (Compact & Functional) Loaded Successfully!")
