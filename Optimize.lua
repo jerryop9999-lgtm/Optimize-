@@ -1,4 +1,4 @@
--- Jerry Optimize 🔧 v4.6 (With Pre-configured GitHub Background + Fixed Error)
+-- Jerry Optimize 🔧 v4.7 (Fixed UDim2.fromOffset Compatibility for Mobile Executors)
 -- Performance Optimizer & Player Tracker
 
 if not game:IsLoaded() then
@@ -17,8 +17,11 @@ local player = Players.LocalPlayer
 -- Fix for Executors like Delta, Fluxus
 local guiParent
 if gethui then
-    guiParent = gethui()
-else
+    local success, res = pcall(function() return gethui() end)
+    if success and res then guiParent = res end
+end
+
+if not guiParent then
     local success, _ = pcall(function() guiParent = game:GetService("CoreGui") end)
     if not success or not guiParent then
         guiParent = player:WaitForChild("PlayerGui")
@@ -56,7 +59,7 @@ end
 
 -- Open button (Icon 🔧)
 local open = Instance.new("TextButton")
-open.Size = UDim2.fromOffset(50, 50)
+open.Size = UDim2.new(0, 50, 0, 50)
 open.Position = UDim2.new(0, 15, 0.5, -25)
 open.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 open.Text = "🔧"
@@ -71,7 +74,7 @@ openCorner.Parent = open
 
 -- Main menu
 local menu = Instance.new("Frame")
-menu.Size = UDim2.fromOffset(360, 360) 
+menu.Size = UDim2.new(0, 360, 0, 360) 
 menu.Position = UDim2.new(0.5, -180, 0.5, -180)
 menu.BackgroundColor3 = Color3.fromRGB(15, 20, 25)
 menu.BorderSizePixel = 0
@@ -121,9 +124,9 @@ end)
 -- Header
 local header = Instance.new("TextLabel")
 header.Size = UDim2.new(1, -20, 0, 48)
-header.Position = UDim2.fromOffset(10, 5)
+header.Position = UDim2.new(0, 10, 0, 5)
 header.BackgroundTransparency = 1
-header.Text = "Jerry Optimize 🔧 v4.6"
+header.Text = "Jerry Optimize 🔧 v4.7"
 header.TextColor3 = Color3.fromRGB(255, 215, 0)
 header.TextSize = 22
 header.Font = Enum.Font.GothamBold
@@ -133,7 +136,7 @@ header.Parent = menu
 -- Status
 local status = Instance.new("TextLabel")
 status.Size = UDim2.new(1, -30, 0, 25)
-status.Position = UDim2.fromOffset(15, 52)
+status.Position = UDim2.new(0, 15, 0, 52)
 status.BackgroundTransparency = 1
 status.Text = "Status: Ready"
 status.TextColor3 = Color3.fromRGB(150, 255, 150)
@@ -146,7 +149,7 @@ status.Parent = menu
 -- FPS
 local fpsLabel = Instance.new("TextLabel")
 fpsLabel.Size = UDim2.new(1, -30, 0, 25)
-fpsLabel.Position = UDim2.fromOffset(15, 76)
+fpsLabel.Position = UDim2.new(0, 15, 0, 76)
 fpsLabel.BackgroundTransparency = 1
 fpsLabel.Text = "FPS: --"
 fpsLabel.TextColor3 = Color3.new(1, 1, 1)
@@ -160,7 +163,7 @@ fpsLabel.Parent = menu
 local function makeButton(text, y, parent)
     local b = Instance.new("ImageButton")
     b.Size = UDim2.new(1, -40, 0, 50)
-    b.Position = UDim2.fromOffset(20, y)
+    b.Position = UDim2.new(0, 20, 0, y)
     b.BackgroundColor3 = Color3.fromRGB(45, 50, 60)
     b.BackgroundTransparency = 0.3
     b.BorderSizePixel = 0
@@ -201,7 +204,7 @@ stopFlyButton.Visible = false
 -- Player List Menu (ទំហំ 300x300)
 --=========================================
 local tpFrame = Instance.new("Frame")
-tpFrame.Size = UDim2.fromOffset(300, 300)
+tpFrame.Size = UDim2.new(0, 300, 0, 300)
 tpFrame.Position = UDim2.new(1, 10, 0, 0)
 tpFrame.BackgroundColor3 = Color3.fromRGB(15, 20, 25)
 tpFrame.BackgroundTransparency = 0.1
@@ -228,7 +231,7 @@ end)
 
 local tpHeader = Instance.new("TextLabel")
 tpHeader.Size = UDim2.new(1, -20, 0, 40)
-tpHeader.Position = UDim2.fromOffset(10, 5)
+tpHeader.Position = UDim2.new(0, 10, 0, 5)
 tpHeader.BackgroundTransparency = 1
 tpHeader.Text = "👥 Select a Player"
 tpHeader.TextColor3 = Color3.fromRGB(100, 200, 255)
@@ -238,7 +241,7 @@ tpHeader.ZIndex = 4
 tpHeader.Parent = tpFrame
 
 local refreshBtn = Instance.new("ImageButton")
-refreshBtn.Size = UDim2.fromOffset(70, 26)
+refreshBtn.Size = UDim2.new(0, 70, 0, 26)
 refreshBtn.Position = UDim2.new(1, -80, 0, 12)
 refreshBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 60)
 refreshBtn.BackgroundTransparency = 0.3
@@ -264,7 +267,7 @@ table.insert(buttonImages, refreshBtn)
 
 local scrollList = Instance.new("ScrollingFrame")
 scrollList.Size = UDim2.new(1, -16, 1, -55)
-scrollList.Position = UDim2.fromOffset(8, 48)
+scrollList.Position = UDim2.new(0, 8, 0, 48)
 scrollList.BackgroundTransparency = 1
 scrollList.ScrollBarThickness = 5
 scrollList.ZIndex = 4
@@ -318,7 +321,7 @@ local function flyToTarget(targetName)
         bv = Instance.new("BodyVelocity")
         bv.Name = "JerryFlyBV"
         bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-        bv.Velocity = Vector3.zero
+        bv.Velocity = Vector3.new(0, 0, 0)
         bv.Parent = hrp
     end
     hrp.Anchored = false
@@ -388,7 +391,7 @@ local function loadPlayers()
             btnTxt.Parent = btn
 
             local avatar = Instance.new("ImageLabel")
-            avatar.Size = UDim2.fromOffset(28, 28)
+            avatar.Size = UDim2.new(0, 28, 0, 28)
             avatar.Position = UDim2.new(0, 4, 0.5, -14)
             avatar.BackgroundColor3 = Color3.fromRGB(25, 30, 40)
             avatar.ZIndex = 6
@@ -523,4 +526,4 @@ UIS.InputBegan:Connect(function(input, p)
     if not p and input.KeyCode == Enum.KeyCode.K then menu.Visible = not menu.Visible end
 end)
 
-print("Jerry Optimize 🔧 v4.6 (Custom Background Loaded Successfully!)")
+print("Jerry Optimize 🔧 v4.7 Loaded Successfully!")
