@@ -1,4 +1,4 @@
--- Jerry Optimize 🔧 v4.4 (Smaller Player List Menu + GitHub BG + Fixed Fly)
+-- Jerry Optimize 🔧 v4.6 (With Pre-configured GitHub Background + Fixed Error)
 -- Performance Optimizer & Player Tracker
 
 if not game:IsLoaded() then
@@ -83,7 +83,7 @@ corner.CornerRadius = UDim.new(0, 16)
 corner.Parent = menu
 
 --=========================================
--- ដាក់ Background Image ពី GitHub Raw Link (មឺនុយមេ)
+-- ដាក់ Background Image ពី GitHub Raw Link របស់អ្នក
 --=========================================
 local bgImage = Instance.new("ImageLabel")
 bgImage.Size = UDim2.new(1, 0, 1, 0)
@@ -95,19 +95,23 @@ bgImage.Parent = menu
 task.spawn(function()
     pcall(function()
         if writefile and getcustomasset and game:HttpGet then
-            -- 🛑 ដាក់ Link Raw របស់ GitHub របស់អ្នកនៅត្រង់នេះ 👇
             local githubRawUrl = "https://raw.githubusercontent.com/jerryop9999-lgtm/Optimize-/refs/heads/main/6cb3179d9f63187af83a92c38eaa9d2e.webp.jpg"
             
-            local fileName = "JerryBg_" .. math.random(1000, 9999) .. ".png"
-            writefile(fileName, game:HttpGet(githubRawUrl))
-            customAssetPath = getcustomasset(fileName)
+            local success, response = pcall(function()
+                return game:HttpGet(githubRawUrl)
+            end)
             
-            bgImage.Image = customAssetPath
-            
-            -- អាប់ដេត Background ទៅឲ្យប៊ូតុងទាំងអស់ដោយស្វ័យប្រវត្តិ
-            for _, btn in ipairs(buttonImages) do
-                if btn and btn.Parent then
-                    btn.Image = customAssetPath
+            if success and response and not response:find("<!DOCTYPE html>") then
+                local fileName = "JerryBg_" .. math.random(1000, 9999) .. ".png"
+                writefile(fileName, response)
+                customAssetPath = getcustomasset(fileName)
+                
+                bgImage.Image = customAssetPath
+                
+                for _, btn in ipairs(buttonImages) do
+                    if btn and btn.Parent then
+                        btn.Image = customAssetPath
+                    end
                 end
             end
         end
@@ -119,7 +123,7 @@ local header = Instance.new("TextLabel")
 header.Size = UDim2.new(1, -20, 0, 48)
 header.Position = UDim2.fromOffset(10, 5)
 header.BackgroundTransparency = 1
-header.Text = "Jerry Optimize 🔧 v4.4"
+header.Text = "Jerry Optimize 🔧 v4.6"
 header.TextColor3 = Color3.fromRGB(255, 215, 0)
 header.TextSize = 22
 header.Font = Enum.Font.GothamBold
@@ -194,7 +198,7 @@ stopFlyButton.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
 stopFlyButton.Visible = false
 
 --=========================================
--- Player List Menu (កែតម្រូវឲ្យតូចជាងមុន: 300x300)
+-- Player List Menu (ទំហំ 300x300)
 --=========================================
 local tpFrame = Instance.new("Frame")
 tpFrame.Size = UDim2.fromOffset(300, 300)
@@ -216,6 +220,7 @@ tpBgImage.BackgroundTransparency = 1
 tpBgImage.ImageTransparency = 0.4
 tpBgImage.ZIndex = 3
 tpBgImage.Parent = tpFrame
+
 task.spawn(function()
     while customAssetPath == "" do task.wait(0.1) end
     tpBgImage.Image = customAssetPath
@@ -518,4 +523,4 @@ UIS.InputBegan:Connect(function(input, p)
     if not p and input.KeyCode == Enum.KeyCode.K then menu.Visible = not menu.Visible end
 end)
 
-print("Jerry Optimize 🔧 v4.4 (Smaller Player List Menu + GitHub BG) Loaded!")
+print("Jerry Optimize 🔧 v4.6 (Custom Background Loaded Successfully!)")
